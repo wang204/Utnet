@@ -9,6 +9,9 @@ import SimpleITK as sitk
 from skimage.measure import label, regionprops
 import math
 import pdb
+import os
+import pandas as pd
+import numpy as np
 
 class CMRDataset(Dataset):
     def __init__(self, dataset_dir, mode='train', domain='A', crop_size=256, scale=0.1, rotate=10, debug=False):
@@ -23,14 +26,16 @@ class CMRDataset(Dataset):
             pre_face = 'Training'
             if 'C' in domain or 'D' in domain:
                 print('No domain C or D in Training set')
-                raise StandardError
+                raise Exception
+                #raise StandardError
 
         elif self.mode == 'test':
             pre_face = 'Testing'
 
         else:
             print('Wrong mode')
-            raise StandardError
+            raise Exception
+           # raise StandardError
         if debug:
             # validation set is the smallest, need the shortest time for load data.
            pre_face = 'Testing'
@@ -41,26 +46,82 @@ class CMRDataset(Dataset):
         name_list = []
 
         if 'A' in domain:
-            df = pd.read_csv(self.dataset_dir+pre_face+'_A.csv')
+            file_path = os.path.join(self.dataset_dir, pre_face + '_A.csv')
+            df = pd.read_csv(file_path)
             name_list += np.array(df['name']).tolist()
+            parent_dir = os.path.dirname(file_path)
+            print("Parent directory of '_A.csv':", parent_dir)
+            #df = pd.read_csv(self.dataset_dir+pre_face+'_A.csv')
+            #name_list += np.array(df['name']).tolist()
         if 'B' in domain:
-            df = pd.read_csv(self.dataset_dir+pre_face+'_B.csv')
+            file_path = os.path.join(self.dataset_dir, pre_face + '_B.csv')
+            df = pd.read_csv(file_path)
             name_list += np.array(df['name']).tolist()
+            # 获取上级目录
+            parent_dir = os.path.dirname(file_path)
+            print("Parent directory of '_B.csv':", parent_dir)
+            #df = pd.read_csv(self.dataset_dir+pre_face+'_B.csv')
+            #name_list += np.array(df['name']).tolist()
         if 'C' in domain:
-            df = pd.read_csv(self.dataset_dir+pre_face+'_C.csv')
+            file_path = os.path.join(self.dataset_dir, pre_face + '_C.csv')
+            df = pd.read_csv(file_path)
             name_list += np.array(df['name']).tolist()
+            # 获取上级目录
+            parent_dir = os.path.dirname(file_path)
+            print("Parent directory of '_C.csv':", parent_dir)
+            #df = pd.read_csv(self.dataset_dir+pre_face+'_C.csv')
+            #name_list += np.array(df['name']).tolist()
         if 'D' in domain:
-            df = pd.read_csv(self.dataset_dir+pre_face+'_D.csv')
+            file_path = os.path.join(self.dataset_dir, pre_face + '_D.csv')
+            df = pd.read_csv(file_path)
             name_list += np.array(df['name']).tolist()
+            # 获取上级目录
+            parent_dir = os.path.dirname(file_path)
+            print("Parent directory of '_D.csv':", parent_dir)
+            #df = pd.read_csv(self.dataset_dir+pre_face+'_D.csv')
+            #name_list += np.array(df['name']).tolist()
+            
 
 
 
-        
+
+       
         img_list = []
         lab_list = []
         spacing_list = []
-
+        
         for name in name_list:
+    # 构造图像和标签文件的完整路径
+            img_path = os.path.join(path, name, f"{name}_sa.nii.gz")
+            lab_path = os.path.join(path, name, f"{name}_sa_gt.nii.gz")
+
+            # 检查文件是否存在
+            if not os.path.exists(img_path) or not os.path.exists(lab_path):
+                print(f"跳过 {name}：文件缺失")
+                continue
+
+            try:
+                # 读取图像和标签
+                itk_img = sitk.ReadImage(img_path)
+                itk_lab = sitk.ReadImage(lab_path)
+
+                # 获取空间分辨率并反转顺序（例如从 [z,y,x] 转为 [x,y,z]）
+                spacing = np.array(itk_lab.GetSpacing()).tolist()
+                spacing_list.append(spacing[::-1])
+
+                # 确保图像和标签尺寸一致
+                assert itk_img.GetSize() == itk_lab.GetSize()
+
+                # 预处理并保存数据
+                img, lab = self.preprocess(itk_img, itk_lab)
+                img_list.append(img)
+                lab_list.append(lab)
+
+            except Exception as e:
+                print(f"处理 {name} 时出错：{str(e)}")
+
+
+        '''for name in name_list:
             for name_idx in os.listdir(path+name):
                 if 'gt' in name_idx:
                     continue
@@ -77,7 +138,7 @@ class CMRDataset(Dataset):
                     img, lab = self.preprocess(itk_img, itk_lab)
 
                     img_list.append(img)
-                    lab_list.append(lab)
+                    lab_list.append(lab)'''
 
        
         self.img_slice_list = []
