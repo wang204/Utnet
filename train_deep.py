@@ -217,7 +217,7 @@ if __name__ == '__main__':
     parser.add_option('-l', '--learning-rate', dest='lr', default=0.05, type='float', help='learning rate')
     parser.add_option('-c', '--resume', type='str', dest='load', default=False, help='load pretrained model')
     parser.add_option('-p', '--checkpoint-path', type='str', dest='cp_path', default='./checkpoint/', help='checkpoint path')
-    parser.add_option('--data_path', type='str', dest='data_path', default='/home/wangtt/UTNet/dataset', help='dataset path')
+    parser.add_option('--data_path', type='str', dest='data_path', default='/home/wangtt/UTNet/dataset/', help='dataset path')
 
     parser.add_option('-o', '--log-path', type='str', dest='log_path', default='./log/', help='log path')
     parser.add_option('-m', type='str', dest='model', default='UTNet', help='use which model')
